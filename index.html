@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>💰 FlowWise - Control de Finanzas Personales</title>
+    <!-- Font Awesome 6 (iconos) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js CDN para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+
+        /* Variables para modo claro/oscuro */
+        :root {
+            --bg-body: #f4f7fc;
+            --bg-card: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --border-light: #e2e8f0;
+            --income: #10b981;
+            --expense: #ef4444;
+            --income-soft: #d1fae5;
+            --expense-soft: #fee2e2;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --shadow-sm: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            --shadow-md: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            --gradient-header: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        body.dark {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-light: #334155;
+            --income-soft: #064e3b;
+            --expense-soft: #7f1a1a;
+            --gradient-header: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+        }
+
+        body {
+            background: var(--bg-body);
+            color: var(--text-primary);
+            padding: 1.5rem;
+            min-height: 100vh;
+        }
+
+        /* contenedor principal */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* header elegante */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: var(--gradient-header);
+            padding: 1.2rem 2rem;
+            border-radius: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .logo-area h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(120deg, #c084fc, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-area p {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .theme-toggle {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 2rem;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+        }
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.02);
+        }
+
+        /* tarjetas resumen */
+        .summary-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            flex: 1;
+            background: var(--bg-card);
+            border-radius: 1.8rem;
+            padding: 1.4rem 1.8rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            backdrop-filter: blur(2px);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+        }
+        .card-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-amount {
+            font-size: 2.2rem;
+            font-weight: 800;
+        }
+        .balance {
+            border-left: 5px solid var(--accent);
+        }
+        .income-summary {
+            border-left: 5px solid var(--income);
+        }
+        .expense-summary {
+            border-left: 5px solid var(--expense);
+        }
+
+        /* sección doble: formulario + gráfico */
+        .row-split {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.8rem;
+            margin-bottom: 2rem;
+        }
+        .form-card, .chart-card {
+            background: var(--bg-card);
+            border-radius: 1.8rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+            flex: 1;
+            min-width: 260px;
+        }
+        .form-card h3, .chart-card h3 {
+            margin-bottom: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            color: var(--text-secondary);
+        }
+        input, select, button {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border-radius: 1.2rem;
+            border: 1px solid var(--border-light);
+            background: var(--bg-body);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+        }
+        input:focus, select:focus {
+            border-color: var(--accent);
+            ring: 2px;
+        }
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: scale(0.98);
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+        }
+        canvas {
+            max-height: 240px;
+            width: 100%;
+        }
+
+        /* filtros y lista de transacciones */
+        .transactions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.2rem;
+            gap: 1rem;
+        }
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background: var(--bg-body);
+            border: 1px solid var(--border-light);
+            padding: 0.4rem 1.2rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--bg-body);
+            border-radius: 2rem;
+            padding: 0.2rem 0.8rem;
+            border: 1px solid var(--border-light);
+        }
+        .search-box i {
+            color: var(--text-secondary);
+        }
+        .search-box input {
+            border: none;
+            background: transparent;
+            padding: 0.5rem;
+            width: 160px;
+        }
+        .transactions-list {
+            background: var(--bg-card);
+            border-radius: 1.8rem;
+            padding: 1rem;
+            border: 1px solid var(--border-light);
+            max-height: 380px;
+            overflow-y: auto;
+        }
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.9rem;
+            border-bottom: 1px solid var(--border-light);
+            transition: background 0.1s;
+        }
+        .transaction-item:hover {
+            background: var(--bg-body);
+            border-radius: 1rem;
+        }
+        .tx-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .tx-desc {
+            font-weight: 600;
+        }
+        .tx-meta {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+        }
+        .tx-amount {
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+        .income-tag {
+            color: var(--income);
+        }
+        .expense-tag {
+            color: var(--expense);
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            width: auto;
+            padding: 0.4rem;
+        }
+        .delete-btn:hover {
+            color: var(--expense);
+            transform: scale(1.1);
+        }
+        .empty-msg {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+        .reset-btn {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--expense);
+            color: var(--expense);
+            margin-top: 1rem;
+        }
+        .footer-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+        @media (max-width: 780px) {
+            body {
+                padding: 1rem;
+            }
+            .card-amount {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <!-- Header creativo -->
+    <div class="header">
+        <div class="logo-area">
+            <h1><i class="fas fa-chart-line"></i> FlowWise</h1>
+            <p>Controla cada moneda con estilo</p>
+        </div>
+        <button class="theme-toggle" id="themeToggleBtn"><i class="fas fa-moon"></i> Modo Oscuro</button>
+    </div>
+
+    <!-- Tarjetas resumen dinámicas -->
+    <div class="summary-cards">
+        <div class="card balance">
+            <div class="card-title"><i class="fas fa-wallet"></i> Balance Neto</div>
+            <div class="card-amount" id="balanceAmount">$0.00</div>
+        </div>
+        <div class="card income-summary">
+            <div class="card-title"><i class="fas fa-arrow-up"></i> Ingresos</div>
+            <div class="card-amount" id="totalIncome">$0.00</div>
+        </div>
+        <div class="card expense-summary">
+            <div class="card-title"><i class="fas fa-arrow-down"></i> Gastos</div>
+            <div class="card-amount" id="totalExpense">$0.00</div>
+        </div>
+    </div>
+
+    <!-- formulario + gráfico circular -->
+    <div class="row-split">
+        <div class="form-card">
+            <h3><i class="fas fa-plus-circle"></i> Nueva transacción</h3>
+            <div class="input-group">
+                <label><i class="fas fa-tag"></i> Descripción</label>
+                <input type="text" id="descInput" placeholder="Ej: Café, Salario, Netflix..." autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-dollar-sign"></i> Monto</label>
+                <input type="number" id="amountInput" placeholder="0.00" step="any" min="0.01">
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-exchange-alt"></i> Tipo</label>
+                <select id="typeSelect">
+                    <option value="income">💰 Ingreso</option>
+                    <option value="expense">💸 Gasto</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-list"></i> Categoría</label>
+                <select id="categorySelect"></select>
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-calendar-alt"></i> Fecha</label>
+                <input type="date" id="dateInput">
+            </div>
+            <button class="btn-primary" id="addBtn"><i class="fas fa-save"></i> Agregar movimiento</button>
+        </div>
+        <div class="chart-card">
+            <h3><i class="fas fa-chart-pie"></i> Ingresos vs Gastos</h3>
+            <canvas id="incomeExpenseChart" width="400" height="240" style="max-height: 240px;"></canvas>
+            <p style="font-size: 0.7rem; text-align: center; margin-top: 1rem; color: var(--text-secondary)">Distribución total</p>
+        </div>
+    </div>
+
+    <!-- sección lista de transacciones con filtros -->
+    <div style="margin-top: 0.5rem;">
+        <div class="transactions-header">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">📋 Todos</button>
+                <button class="filter-btn" data-filter="income">⬆️ Ingresos</button>
+                <button class="filter-btn" data-filter="expense">⬇️ Gastos</button>
+            </div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Buscar...">
+            </div>
+        </div>
+        <div class="transactions-list" id="transactionsList">
+            <div class="empty-msg">✨ Agrega tu primer ingreso o gasto</div>
+        </div>
+        <div class="footer-actions">
+            <button class="btn-secondary reset-btn" id="resetDemoBtn"><i class="fas fa-brush"></i> Datos de ejemplo</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- DATA Y ESTADO GLOBAL ----------
+    let transactions = [];      // cada objeto: { id, desc, amount, type, category, date }
+    let currentFilter = "all";  // all, income, expense
+    let searchQuery = "";
+    let chartInstance = null;    // para destruir gráfico
+
+    // categorías según tipo
+    const incomeCategories = ["Salario", "Freelance", "Regalo", "Inversión", "Otro ingreso"];
+    const expenseCategories = ["Comida", "Transporte", "Entretenimiento", "Servicios", "Salud", "Compras", "Otro gasto"];
+
+    // Helper: formateo moneda
+    function formatMoney(value) {
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
+    }
+
+    // guardar en localStorage
+    function saveToLocal() {
+        localStorage.setItem("flowwise_transactions", JSON.stringify(transactions));
+    }
+
+    // cargar datos iniciales o demo
+    function loadInitialData() {
+        const stored = localStorage.getItem("flowwise_transactions");
+        if (stored && stored.length > 0) {
+            transactions = JSON.parse(stored);
+        } else {
+            // datos de ejemplo creativos
+            const today = new Date().toISOString().slice(0,10);
+            const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+            transactions = [
+                { id: Date.now()+1, desc: "💼 Salario mensual", amount: 2800000, type: "income", category: "Salario", date: today },
+                { id: Date.now()+2, desc: "🛒 Supermercado", amount: 450000, type: "expense", category: "Comida", date: yesterday },
+                { id: Date.now()+3, desc: "🚕 Transporte", amount: 80000, type: "expense", category: "Transporte", date: today },
+                { id: Date.now()+4, desc: "🎬 Netflix y streaming", amount: 34900, type: "expense", category: "Entretenimiento", date: today },
+                { id: Date.now()+5, desc: "🎁 Freelance diseño", amount: 350000, type: "income", category: "Freelance", date: yesterday }
+            ];
+        }
+    }
+
+    // actualizar select de categorías según tipo
+    function updateCategoryDropdown() {
+        const type = document.getElementById("typeSelect").value;
+        const catSelect = document.getElementById("categorySelect");
+        const categories = type === "income" ? incomeCategories : expenseCategories;
+        catSelect.innerHTML = "";
+        categories.forEach(cat => {
+            const option = document.createElement("option");
+            option.value = cat;
+            option.textContent = cat;
+            catSelect.appendChild(option);
+        });
+    }
+
+    // agregar transacción
+    function addTransaction() {
+        const desc = document.getElementById("descInput").value.trim();
+        let amount = parseFloat(document.getElementById("amountInput").value);
+        const type = document.getElementById("typeSelect").value;
+        const category = document.getElementById("categorySelect").value;
+        let date = document.getElementById("dateInput").value;
+
+        if (!desc) {
+            alert("✏️ Por favor escribe una descripción");
+            return;
+        }
+        if (isNaN(amount) || amount <= 0) {
+            alert("💵 Monto inválido, debe ser mayor a cero");
+            return;
+        }
+        if (!date) {
+            date = new Date().toISOString().slice(0,10);
+        }
+
+        const newTransaction = {
+            id: Date.now(),
+            desc: desc,
+            amount: amount,
+            type: type,
+            category: category,
+            date: date,
+        };
+        transactions.push(newTransaction);
+        saveToLocal();
+        clearForm();
+        refreshAllUI();
+        showTemporaryMessage("✅ Movimiento agregado", "success");
+    }
+
+    function clearForm() {
+        document.getElementById("descInput").value = "";
+        document.getElementById("amountInput").value = "";
+        document.getElementById("typeSelect").value = "income";
+        updateCategoryDropdown();
+        document.getElementById("dateInput").value = new Date().toISOString().slice(0,10);
+    }
+
+    // eliminar transacción
+    function deleteTransaction(id) {
+        transactions = transactions.filter(t => t.id !== id);
+        saveToLocal();
+        refreshAllUI();
+        showTemporaryMessage("🗑️ Eliminado correctamente", "info");
+    }
+
+    // obtener totales y resumen
+    function getTotals() {
+        let totalIncome = 0, totalExpense = 0;
+        transactions.forEach(t => {
+            if (t.type === "income") totalIncome += t.amount;
+            else totalExpense += t.amount;
+        });
+        const balance = totalIncome - totalExpense;
+        return { totalIncome, totalExpense, balance };
+    }
+
+    // actualizar tarjetas
+    function updateSummaryCards() {
+        const { totalIncome, totalExpense, balance } = getTotals();
+        document.getElementById("balanceAmount").innerHTML = formatMoney(balance);
+        document.getElementById("totalIncome").innerHTML = formatMoney(totalIncome);
+        document.getElementById("totalExpense").innerHTML = formatMoney(totalExpense);
+    }
+
+    // dibujar gráfico dona (ingresos vs gastos)
+    function updateChart() {
+        const { totalIncome, totalExpense } = getTotals();
+        const ctx = document.getElementById("incomeExpenseChart").getContext("2d");
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+        chartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Ingresos', 'Gastos'],
+                datasets: [{
+                    data: [totalIncome, totalExpense],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderColor: 'transparent',
+                    hoverOffset: 8,
+                    borderRadius: 12,
+                    spacing: 5
+                }]
+            },
+            options: {
+                cutout: '60%',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-primary') } },
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${formatMoney(ctx.raw)}` } }
+                }
+            }
+        });
+    }
+
+    // filtrar transacciones según filtro actual y búsqueda
+    function getFilteredTransactions() {
+        let filtered = [...transactions];
+        if (currentFilter !== "all") {
+            filtered = filtered.filter(t => t.type === currentFilter);
+        }
+        if (searchQuery.trim() !== "") {
+            const query = searchQuery.trim().toLowerCase();
+            filtered = filtered.filter(t => t.desc.toLowerCase().includes(query) || t.category.toLowerCase().includes(query));
+        }
+        // ordenar por fecha descendente (más reciente primero)
+        filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+        return filtered;
+    }
+
+    // renderizar la lista de transacciones
+    function renderTransactionsList() {
+        const container = document.getElementById("transactionsList");
+        const filtered = getFilteredTransactions();
+        if (filtered.length === 0) {
+            container.innerHTML = `<div class="empty-msg"><i class="fas fa-coffee"></i> No hay movimientos... agrega uno nuevo</div>`;
+            return;
+        }
+        container.innerHTML = "";
+        filtered.forEach(tx => {
+            const itemDiv = document.createElement("div");
+            itemDiv.className = "transaction-item";
+            const amountClass = tx.type === "income" ? "income-tag" : "expense-tag";
+            const sign = tx.type === "income" ? "+" : "-";
+            const iconType = tx.type === "income" ? "<i class='fas fa-arrow-up' style='color:#10b981'></i>" : "<i class='fas fa-arrow-down' style='color:#ef4444'></i>";
+            itemDiv.innerHTML = `
+                <div class="tx-info">
+                    <div class="tx-desc">${iconType} ${escapeHtml(tx.desc)}</div>
+                    <div class="tx-meta">
+                        <span><i class="far fa-calendar-alt"></i> ${formatDate(tx.date)}</span>
+                        <span><i class="fas fa-tag"></i> ${escapeHtml(tx.category)}</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="tx-amount ${amountClass}">${sign} ${formatMoney(tx.amount)}</div>
+                    <button class="delete-btn" data-id="${tx.id}"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            `;
+            container.appendChild(itemDiv);
+        });
+        // agregar eventos eliminar
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(btn.getAttribute('data-id'));
+                deleteTransaction(id);
+            });
+        });
+    }
+
+    // actualiza todo: resumen, gráfico, lista, filtros activos UI
+    function refreshAllUI() {
+        updateSummaryCards();
+        updateChart();
+        renderTransactionsList();
+        highlightActiveFilter();
+    }
+
+    function highlightActiveFilter() {
+        document.querySelectorAll(".filter-btn").forEach(btn => {
+            const filterVal = btn.getAttribute("data-filter");
+            if (filterVal === currentFilter) btn.classList.add("active");
+            else btn.classList.remove("active");
+        });
+    }
+
+    // Formatear fecha legible
+    function formatDate(dateStr) {
+        if (!dateStr) return "Sin fecha";
+        const parts = dateStr.split("-");
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return dateStr;
+    }
+
+    // pequeño helper anti-XSS
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // mensajes flotantes temporales (pequeño toast)
+    let toastTimeout = null;
+    function showTemporaryMessage(msg, type) {
+        let toastDiv = document.getElementById("customToast");
+        if (!toastDiv) {
+            toastDiv = document.createElement("div");
+            toastDiv.id = "customToast";
+            toastDiv.style.position = "fixed";
+            toastDiv.style.bottom = "20px";
+            toastDiv.style.right = "20px";
+            toastDiv.style.backgroundColor = "#1e293b";
+            toastDiv.style.color = "white";
+            toastDiv.style.padding = "10px 18px";
+            toastDiv.style.borderRadius = "40px";
+            toastDiv.style.fontSize = "0.9rem";
+            toastDiv.style.zIndex = "999";
+            toastDiv.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+            toastDiv.style.backdropFilter = "blur(8px)";
+            toastDiv.style.fontWeight = "500";
+            document.body.appendChild(toastDiv);
+        }
+        if (type === "success") toastDiv.style.backgroundColor = "#10b981";
+        else if (type === "info") toastDiv.style.backgroundColor = "#3b82f6";
+        else toastDiv.style.backgroundColor = "#ef4444";
+        toastDiv.innerHTML = `<i class="fas fa-circle-info"></i> ${msg}`;
+        toastDiv.style.opacity = "1";
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toastDiv.style.opacity = "0";
+        }, 2000);
+    }
+
+    // reset a datos de ejemplo (sobrescribe)
+    function resetToDemo() {
+        const today = new Date().toISOString().slice(0,10);
+        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+        transactions = [
+            { id: Date.now()+101, desc: "💼 Salario base", amount: 2500000, type: "income", category: "Salario", date: today },
+            { id: Date.now()+102, desc: "🍕 Comida rápida", amount: 45000, type: "expense", category: "Comida", date: today },
+            { id: Date.now()+103, desc: "🚖 Uber", amount: 28000, type: "expense", category: "Transporte", date: yesterday },
+            { id: Date.now()+104, desc: "🎧 Freelance web", amount: 420000, type: "income", category: "Freelance", date: yesterday },
+            { id: Date.now()+105, desc: "🎮 Suscripción gaming", amount: 39900, type: "expense", category: "Entretenimiento", date: today }
+        ];
+        saveToLocal();
+        refreshAllUI();
+        showTemporaryMessage("✨ Datos de ejemplo cargados", "success");
+    }
+
+    // Eventos y configuración inicial
+    function bindEvents() {
+        document.getElementById("addBtn").addEventListener("click", addTransaction);
+        document.getElementById("typeSelect").addEventListener("change", updateCategoryDropdown);
+        document.getElementById("resetDemoBtn").addEventListener("click", resetToDemo);
+        // filtros
+        document.querySelectorAll(".filter-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                currentFilter = btn.getAttribute("data-filter");
+                refreshAllUI();
+            });
+        });
+        // búsqueda en tiempo real
+        const searchInput = document.getElementById("searchInput");
+        searchInput.addEventListener("input", (e) => {
+            searchQuery = e.target.value;
+            renderTransactionsList();  // no refresca gráfico pero está bien
+        });
+        // tema oscuro/claro
+        const themeBtn = document.getElementById("themeToggleBtn");
+        themeBtn.addEventListener("click", () => {
+            document.body.classList.toggle("dark");
+            const isDark = document.body.classList.contains("dark");
+            localStorage.setItem("flowwise_theme", isDark ? "dark" : "light");
+            // actualizar gráfico para que los colores del texto se adapten (destruir y recrear)
+            updateChart();
+        });
+        // cargar preferencia tema
+        const savedTheme = localStorage.getItem("flowwise_theme");
+        if (savedTheme === "dark") document.body.classList.add("dark");
+    }
+
+    // iniciar app
+    function init() {
+        loadInitialData();
+        // fecha por defecto hoy en input
+        const todayInput = document.getElementById("dateInput");
+        if (todayInput) todayInput.value = new Date().toISOString().slice(0,10);
+        updateCategoryDropdown();
+        bindEvents();
+        refreshAllUI();
+        // ajustar gráfico en modo oscuro si corresponde
+        if (localStorage.getItem("flowwise_theme") === "dark") document.body.classList.add("dark");
+    }
+
+    init();
+</script>
+</body>
+</html>
